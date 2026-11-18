@@ -1,4 +1,3 @@
-import React from 'react';
 import { Bot } from 'lucide-react';
 
 export default function Header({ availableModels, selectedModel, onSelectModel }) {

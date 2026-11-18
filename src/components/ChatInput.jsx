@@ -1,4 +1,3 @@
-import React from 'react';
 import { Send, Loader2 } from 'lucide-react';
 
 export default function ChatInput({ input, setInput, onSubmit, isLoading, disabled }) {

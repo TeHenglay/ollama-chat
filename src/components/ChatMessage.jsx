@@ -1,4 +1,3 @@
-import React from 'react';
 import { Bot, User, Loader2 } from 'lucide-react';
 
 export default function ChatMessage({ message, isLoading, isLastMessage }) {

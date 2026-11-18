@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Bot } from 'lucide-react';
 import Header from './components/Header';
 import ChatMessage from './components/ChatMessage';
@@ -10,6 +10,7 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [availableModels, setAvailableModels] = useState([]);
   const [model, setModel] = useState('');
+  const [modelError, setModelError] = useState('');
   const chatEndRef = useRef(null);
 
   // Fetch installed models from Ollama container
@@ -23,7 +24,10 @@ export default function App() {
           setModel(names[0]);
         }
       })
-      .catch((err) => console.error('Error fetching models:', err));
+      .catch((err) => {
+        console.error('Error fetching models:', err);
+        setModelError('Cannot reach Ollama at localhost:11434. Is it running?');
+      });
   }, []);
 
   // Auto-scroll on new message chunk
@@ -41,6 +45,7 @@ export default function App() {
     setMessages([...updatedMessages, { role: 'assistant', content: '' }]);
     setInput('');
     setIsLoading(true);
+    let assistantResponse = '';
 
     try {
       const response = await fetch('http://localhost:11434/api/chat', {
@@ -53,15 +58,18 @@ export default function App() {
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let assistantResponse = '';
+      let buffer = '';
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const lines = decoder.decode(value, { stream: true }).split('\n').filter(Boolean);
+        // line buffer
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
 
-        for (const line of lines) {
+        for (const line of lines.filter(Boolean)) {
           try {
             const parsed = JSON.parse(line);
             if (parsed.message?.content) {
@@ -78,10 +86,16 @@ export default function App() {
         }
       }
     } catch (error) {
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', content: `Error: ${error.message}. Is Ollama running with OLLAMA_ORIGINS="*"?` },
-      ]);
+      // error bubble
+      const errorText = `Error: ${error.message}. Is Ollama running with OLLAMA_ORIGINS="*"?`;
+      setMessages((prev) => {
+        const newArr = [...prev];
+        newArr[newArr.length - 1] = {
+          role: 'assistant',
+          content: assistantResponse ? `${assistantResponse}\n\n${errorText}` : errorText,
+        };
+        return newArr;
+      });
     } finally {
       setIsLoading(false);
     }
@@ -100,6 +114,7 @@ export default function App() {
           <div className="flex flex-col items-center justify-center h-full text-slate-500 space-y-3">
             <Bot className="w-12 h-12 stroke-[1.5]" />
             <p className="text-lg">Start a conversation with your local model.</p>
+            {modelError && <p className="text-sm text-red-400">{modelError}</p>}
           </div>
         ) : (
           messages.map((msg, idx) => (

@@ -18,5 +18,6 @@ Launching your Ollama container with `OLLAMA_ORIGINS="*" environment variable. I
     ollama pull qwen2.5
 # Step 3: pull and run this project
     git clone https://github.com/rupp-ite/ollama-chat.git
+    cd ollama-chat
     npm install
     npm run dev
